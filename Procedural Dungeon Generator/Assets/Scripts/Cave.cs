@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 public class Cave : MonoBehaviour
@@ -10,16 +9,12 @@ public class Cave : MonoBehaviour
     [Range(0, 8)]
     [SerializeField] private int wallAdjacent;
 
-    [Range(1, 10)]
-    [SerializeField] private int cicleVerification;
-
     [Header("Cave Attribuits")]
     [SerializeField] private int width;
     [SerializeField] private int height;
     [SerializeField] private Vector2Int offset;
     private CellCave[,] cellCave;
     public GameObject cellCavePrefab;
-    private bool isSmoothing;
 
     void Start()
     {
@@ -35,21 +30,33 @@ public class Cave : MonoBehaviour
 
     void Update()
     {
-        if(Input.GetKeyDown(KeyCode.R) && !isSmoothing) ReloadCave();
+        if(Input.GetKeyDown(KeyCode.R)) ReloadCave();
+        if(Input.GetKeyDown(KeyCode.S)) SmoothCave();
     }
 
-    public void InitializeCave()
+    private void InitializeCave()
     {
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
 
-                Vector3 pos = new Vector3(x + offset.x, y + offset.y, 0);
+                Vector3 pos = new(x + offset.x, y + offset.y, 0);
 
                 GameObject newCell = Instantiate(cellCavePrefab, pos, Quaternion.identity, transform);
                 cellCave[y, x] = newCell.GetComponent<CellCave>();
+            }
+        }
 
+        RandomCells();
+    }
+
+    private void RandomCells()
+    {
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
                 if (Random.Range(0, 101) < percentToBeWall)
                 {
                     cellCave[y, x].SetToWall();
@@ -60,29 +67,14 @@ public class Cave : MonoBehaviour
                 }
             }
         }
-
-        StartCoroutine(SmoothCave());
-    }
-
-    public void CleanCellCave()
-    {
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                Destroy(cellCave[y, x].gameObject);
-                cellCave[y, x] = null;
-            }
-        }
     }
 
     private void ReloadCave()
     {
-        CleanCellCave();
-        InitializeCave();
+        RandomCells();
     }
 
-    int GetAdjacentWallCount(int gridX, int gridY) {
+    private int GetAdjacentWallCount(int gridX, int gridY) {
         int wallCount = 0;
 
         for (int neighborY = gridY - 1; neighborY <= gridY + 1; neighborY++) {
@@ -102,31 +94,26 @@ public class Cave : MonoBehaviour
         return wallCount;
     }
 
-    private IEnumerator SmoothCave() {
-        isSmoothing = true;
-        for (int i = 0; i < cicleVerification; i++) {
-            
-            bool[,] tempMap = new bool[height, width];
+    private void SmoothCave() {
+  
+        bool[,] tempMap = new bool[height, width];
 
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    int neighbors = GetAdjacentWallCount(x, y);
-                    
-                    if (neighbors > wallAdjacent) tempMap[y, x] = true;
-                    else if (neighbors < wallAdjacent) tempMap[y, x] = false;
-                    else tempMap[y, x] = cellCave[y, x].IsWall();
-                }
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int neighbors = GetAdjacentWallCount(x, y);
+                
+                if (neighbors > wallAdjacent) tempMap[y, x] = true;
+                else if (neighbors < wallAdjacent) tempMap[y, x] = false;
+                else tempMap[y, x] = cellCave[y, x].IsWall();
             }
-
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
-                    if (tempMap[y, x]) cellCave[y, x].SetToWall();
-                    else cellCave[y, x].SetToEmpty();
-                }
-            }
-
-            yield return new WaitForSeconds(1.0f);
         }
-        isSmoothing = false;
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (tempMap[y, x]) cellCave[y, x].SetToWall();
+                else cellCave[y, x].SetToEmpty();
+            }
+        }
+
     }
 }
